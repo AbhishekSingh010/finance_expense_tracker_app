@@ -77,22 +77,37 @@ class _MainScreenState extends State<MainScreen> {
             child: BottomNavigationBar(
               elevation: 0,
               backgroundColor: Colors.transparent,
-              currentIndex: _currentIndex,
+              currentIndex: _currentIndex >= 1 ? _currentIndex + 1 : _currentIndex,
               onTap: (index) {
+                if (index == 1) {
+                  Navigator.pushNamed(context, '/add_expense');
+                  return;
+                }
                 setState(() {
-                  _currentIndex = index;
+                  _currentIndex = index >= 1 ? index - 1 : index;
                 });
               },
-              items: const [
-                BottomNavigationBarItem(
+              items: [
+                const BottomNavigationBarItem(
                   icon: Icon(Icons.dashboard),
                   label: 'Dashboard',
                 ),
                 BottomNavigationBarItem(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.add, color: Colors.white),
+                  ),
+                  label: 'Add',
+                ),
+                const BottomNavigationBarItem(
                   icon: Icon(Icons.insights),
                   label: 'Insights',
                 ),
-                BottomNavigationBarItem(
+                const BottomNavigationBarItem(
                   icon: Icon(Icons.chat_bubble),
                   label: 'AI Chat',
                 ),

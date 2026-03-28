@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/expense_provider.dart';
 import '../data/models/expense.dart';
 import '../core/theme.dart';
+import '../screens/add_expense_screen.dart' as import_add_expense;
 
 class ExpenseTile extends StatelessWidget {
   final Expense expense;
@@ -46,6 +49,15 @@ class ExpenseTile extends StatelessWidget {
         color: AppTheme.surface,
       ),
       child: ListTile(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  import_add_expense.AddExpenseScreen(existingExpense: expense),
+            ),
+          );
+        },
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           backgroundColor: _getCategoryColor(expense.category).withOpacity(0.2),
@@ -76,7 +88,7 @@ class ExpenseTile extends StatelessWidget {
           ],
         ),
         trailing: Text(
-          '-\$${expense.amount.toStringAsFixed(2)}',
+          '-${Provider.of<ExpenseProvider>(context, listen: false).currencySymbol}${expense.amount.toStringAsFixed(2)}',
           style: const TextStyle(
             color: AppTheme.textPrimary,
             fontWeight: FontWeight.bold,

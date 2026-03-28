@@ -4,7 +4,6 @@ import '../providers/expense_provider.dart';
 import '../core/theme.dart';
 import '../widgets/expense_tile.dart';
 import '../widgets/chart_widget.dart';
-import 'add_expense_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -59,7 +58,7 @@ class DashboardScreen extends StatelessWidget {
                         const SizedBox(height: 24),
                         _buildTimeframeSelector(provider),
                         const SizedBox(height: 24),
-                        if (provider.budget > 0 && provider.timeframe == 'monthly') _buildBudgetProgress(provider),
+                        if (provider.currentBudget > 0) _buildBudgetProgress(provider),
                         const SizedBox(height: 24),
                         if (provider.expenses.isNotEmpty) ...[
                           Text(
@@ -104,15 +103,6 @@ class DashboardScreen extends StatelessWidget {
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddExpenseScreen()),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 
@@ -144,7 +134,7 @@ class DashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '\$${provider.totalMonthlySpending.toStringAsFixed(2)}',
+            '${provider.currencySymbol}${provider.totalMonthlySpending.toStringAsFixed(2)}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 36,
@@ -166,7 +156,7 @@ class DashboardScreen extends StatelessWidget {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: ['daily', 'weekly', 'monthly'].map((tf) {
+        children: ['daily', 'weekly', 'monthly', 'yearly'].map((tf) {
           final isSelected = provider.timeframe == tf;
           return GestureDetector(
             onTap: () => provider.setTimeframe(tf),
@@ -191,11 +181,11 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildBudgetProgress(ExpenseProvider provider) {
-    final double percentage = provider.budget > 0 
-        ? (provider.totalMonthlySpending / provider.budget).clamp(0.0, 1.0) 
+    final double percentage = provider.currentBudget > 0
+        ? (provider.totalMonthlySpending / provider.currentBudget).clamp(0.0, 1.0)
         : 0.0;
     
-    final bool isExceeded = provider.totalMonthlySpending > provider.budget;
+    final bool isExceeded = provider.totalMonthlySpending > provider.currentBudget;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -210,11 +200,11 @@ class DashboardScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Monthly Budget',
+                '${provider.timeframe[0].toUpperCase()}${provider.timeframe.substring(1)} Budget',
                 style: TextStyle(color: AppTheme.textSecondary),
               ),
               Text(
-                '\$${provider.totalMonthlySpending.toStringAsFixed(0)} / \$${provider.budget.toStringAsFixed(0)}',
+                '${provider.currencySymbol}${provider.totalMonthlySpending.toStringAsFixed(0)} / ${provider.currencySymbol}${provider.currentBudget.toStringAsFixed(0)}',
                 style: TextStyle(
                   color: isExceeded ? AppTheme.error : AppTheme.textPrimary,
                   fontWeight: FontWeight.bold,

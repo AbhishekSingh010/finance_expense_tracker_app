@@ -8,14 +8,33 @@ class ExpenseProvider with ChangeNotifier {
   final StorageService _storageService = StorageService();
 
   List<Expense> _expenses = [];
-  double _budget = 0.0;
+  double _dailyBudget = 0.0;
+  double _weeklyBudget = 0.0;
+  double _monthlyBudget = 0.0;
+  double _yearlyBudget = 0.0;
+  String _currencySymbol = '\$';
   String? _apiKey;
   bool _aiEnabled = true;
-  String _timeframe = 'monthly'; // 'daily', 'weekly', 'monthly'
+  String _timeframe = 'monthly'; // 'daily', 'weekly', 'monthly', 'yearly'
 
   List<Expense> get allExpenses => _expenses;
   String get timeframe => _timeframe;
-  double get budget => _budget;
+  double get dailyBudget => _dailyBudget;
+  double get weeklyBudget => _weeklyBudget;
+  double get monthlyBudget => _monthlyBudget;
+  double get yearlyBudget => _yearlyBudget;
+  String get currencySymbol => _currencySymbol;
+
+  double get currentBudget {
+    switch (_timeframe) {
+      case 'daily': return _dailyBudget;
+      case 'weekly': return _weeklyBudget;
+      case 'yearly': return _yearlyBudget;
+      case 'monthly':
+      default: return _monthlyBudget;
+    }
+  }
+
   bool get hasApiKey => _apiKey != null && _apiKey!.isNotEmpty;
   String? get apiKey => _apiKey;
   bool get aiEnabled => _aiEnabled;
@@ -35,7 +54,9 @@ class ExpenseProvider with ChangeNotifier {
         } else if (_timeframe == 'weekly') {
           final diff = now.difference(expenseDate).inDays;
           return diff >= 0 && diff < 7;
-        } else {
+        } else if (_timeframe == 'yearly') {
+          return expenseDate.year == now.year;
+        } else { // monthly
           return expenseDate.year == now.year && expenseDate.month == now.month;
         }
       } catch (e) {
@@ -70,7 +91,11 @@ class ExpenseProvider with ChangeNotifier {
 
   Future<void> loadData() async {
     _expenses = await _dbHelper.getExpenses();
-    _budget = await _storageService.getBudget() ?? 0.0;
+    _dailyBudget = await _storageService.getBudget('daily') ?? 0.0;
+    _weeklyBudget = await _storageService.getBudget('weekly') ?? 0.0;
+    _monthlyBudget = await _storageService.getBudget('monthly') ?? 0.0;
+    _yearlyBudget = await _storageService.getBudget('yearly') ?? 0.0;
+    _currencySymbol = await _storageService.getCurrencySymbol() ?? '\$';
     _apiKey = await _storageService.getApiKey();
     _aiEnabled = await _storageService.getAiEnabled();
     notifyListeners();
@@ -91,9 +116,18 @@ class ExpenseProvider with ChangeNotifier {
     await loadData();
   }
 
-  Future<void> setBudget(double budget) async {
-    await _storageService.saveBudget(budget);
-    _budget = budget;
+  Future<void> setBudget(String type, double budget) async {
+    await _storageService.saveBudget(type, budget);
+    if (type == 'daily') _dailyBudget = budget;
+    else if (type == 'weekly') _weeklyBudget = budget;
+    else if (type == 'yearly') _yearlyBudget = budget;
+    else _monthlyBudget = budget;
+    notifyListeners();
+  }
+
+  Future<void> setCurrencySymbol(String symbol) async {
+    await _storageService.saveCurrencySymbol(symbol);
+    _currencySymbol = symbol;
     notifyListeners();
   }
 

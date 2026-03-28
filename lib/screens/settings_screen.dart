@@ -12,7 +12,14 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _apiKeyController = TextEditingController();
-  final _budgetController = TextEditingController();
+  final _dailyBudgetController = TextEditingController();
+  final _weeklyBudgetController = TextEditingController();
+  final _monthlyBudgetController = TextEditingController();
+  final _yearlyBudgetController = TextEditingController();
+  String _selectedCurrency = '\$';
+
+  final List<String> _currencies = ['\$', '₹', '€', '£', '¥'];
+
   bool _isApiVisible = false;
   bool _aiEnabled = true;
 
@@ -24,8 +31,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (provider.apiKey != null) {
         _apiKeyController.text = provider.apiKey!;
       }
-      if (provider.budget > 0) {
-        _budgetController.text = provider.budget.toStringAsFixed(0);
+
+      _dailyBudgetController.text = provider.dailyBudget > 0 ? provider.dailyBudget.toStringAsFixed(0) : '';
+      _weeklyBudgetController.text = provider.weeklyBudget > 0 ? provider.weeklyBudget.toStringAsFixed(0) : '';
+      _monthlyBudgetController.text = provider.monthlyBudget > 0 ? provider.monthlyBudget.toStringAsFixed(0) : '';
+      _yearlyBudgetController.text = provider.yearlyBudget > 0 ? provider.yearlyBudget.toStringAsFixed(0) : '';
+
+      _selectedCurrency = provider.currencySymbol;
+      if (!_currencies.contains(_selectedCurrency)) {
+        _currencies.add(_selectedCurrency);
       }
       _aiEnabled = provider.aiEnabled;
     });
@@ -34,7 +48,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _apiKeyController.dispose();
-    _budgetController.dispose();
+    _dailyBudgetController.dispose();
+    _weeklyBudgetController.dispose();
+    _monthlyBudgetController.dispose();
+    _yearlyBudgetController.dispose();
     super.dispose();
   }
 
@@ -47,14 +64,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       provider.removeApiKey();
     }
 
-    if (_budgetController.text.isNotEmpty) {
-      final budget = double.tryParse(_budgetController.text);
-      if (budget != null) {
-        provider.setBudget(budget);
-      }
-    } else {
-      provider.setBudget(0);
-    }
+    final dailyBudget = double.tryParse(_dailyBudgetController.text) ?? 0.0;
+    provider.setBudget('daily', dailyBudget);
+
+    final weeklyBudget = double.tryParse(_weeklyBudgetController.text) ?? 0.0;
+    provider.setBudget('weekly', weeklyBudget);
+
+    final monthlyBudget = double.tryParse(_monthlyBudgetController.text) ?? 0.0;
+    provider.setBudget('monthly', monthlyBudget);
+
+    final yearlyBudget = double.tryParse(_yearlyBudgetController.text) ?? 0.0;
+    provider.setBudget('yearly', yearlyBudget);
+
+    provider.setCurrencySymbol(_selectedCurrency);
     
     provider.setAiEnabled(_aiEnabled);
 
@@ -92,13 +114,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   child: Column(
                     children: [
-                      TextFormField(
-                        controller: _budgetController,
-                        keyboardType: TextInputType.number,
+                      DropdownButtonFormField<String>(
+                        value: _selectedCurrency,
                         decoration: const InputDecoration(
+                          labelText: 'Currency Symbol',
+                          prefixIcon: Icon(Icons.money, color: AppTheme.textSecondary),
+                        ),
+                        dropdownColor: AppTheme.surface,
+                        items: _currencies.map((String symbol) {
+                          return DropdownMenuItem(
+                            value: symbol,
+                            child: Text(symbol),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            if (newValue != null) {
+                              _selectedCurrency = newValue;
+                            }
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _dailyBudgetController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Daily Budget',
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Text(_selectedCurrency, style: const TextStyle(fontSize: 18, color: AppTheme.textSecondary)),
+                          ),
+                          hintText: 'e.g. 50',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _weeklyBudgetController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Weekly Budget',
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Text(_selectedCurrency, style: const TextStyle(fontSize: 18, color: AppTheme.textSecondary)),
+                          ),
+                          hintText: 'e.g. 350',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _monthlyBudgetController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
                           labelText: 'Monthly Budget',
-                          prefixIcon: Icon(Icons.attach_money, color: AppTheme.textSecondary),
-                          hintText: 'e.g. 5000',
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Text(_selectedCurrency, style: const TextStyle(fontSize: 18, color: AppTheme.textSecondary)),
+                          ),
+                          hintText: 'e.g. 1500',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _yearlyBudgetController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Yearly Budget',
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Text(_selectedCurrency, style: const TextStyle(fontSize: 18, color: AppTheme.textSecondary)),
+                          ),
+                          hintText: 'e.g. 18000',
                         ),
                       ),
                     ],

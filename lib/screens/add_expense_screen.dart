@@ -6,7 +6,8 @@ import '../data/models/expense.dart';
 import '../providers/expense_provider.dart';
 
 class AddExpenseScreen extends StatefulWidget {
-  const AddExpenseScreen({Key? key}) : super(key: key);
+  final Expense? existingExpense;
+  const AddExpenseScreen({Key? key, this.existingExpense}) : super(key: key);
 
   @override
   _AddExpenseScreenState createState() => _AddExpenseScreenState();
@@ -20,6 +21,23 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   DateTime _selectedDate = DateTime.now();
 
   final List<String> _categories = ['Food', 'Travel', 'Bills', 'Shopping', 'Others'];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingExpense != null) {
+      _amountController.text = widget.existingExpense!.amount.toString();
+      _noteController.text = widget.existingExpense!.note;
+      if (_categories.contains(widget.existingExpense!.category)) {
+        _selectedCategory = widget.existingExpense!.category;
+      }
+      try {
+        _selectedDate = DateTime.parse(widget.existingExpense!.date);
+      } catch (e) {
+        // use default
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -57,23 +75,45 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   void _saveExpense() {
     if (_formKey.currentState!.validate()) {
-      final newExpense = Expense(
+      final expense = Expense(
+        id: widget.existingExpense?.id,
         amount: double.parse(_amountController.text),
         category: _selectedCategory,
         date: DateFormat('yyyy-MM-dd').format(_selectedDate),
         note: _noteController.text,
       );
 
-      Provider.of<ExpenseProvider>(context, listen: false).addExpense(newExpense);
+      if (widget.existingExpense != null) {
+        Provider.of<ExpenseProvider>(context, listen: false).updateExpense(expense);
+      } else {
+        Provider.of<ExpenseProvider>(context, listen: false).addExpense(expense);
+      }
       Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.existingExpense != null;
+    final currencySymbol = Provider.of<ExpenseProvider>(context).currencySymbol;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Expense'),
+        title: Text(isEditing ? 'Edit Expense' : 'Add Expense'),
+        actions: isEditing
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.delete, color: AppTheme.error),
+                  onPressed: () {
+                    if (widget.existingExpense?.id != null) {
+                      Provider.of<ExpenseProvider>(context, listen: false)
+                          .deleteExpense(widget.existingExpense!.id!);
+                      Navigator.pop(context);
+                    }
+                  },
+                ),
+              ]
+            : null,
       ),
       body: SafeArea(
         child: Padding(
@@ -99,9 +139,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           textAlign: TextAlign.center,
                           decoration: InputDecoration(
                             hintText: '0.00',
-                            prefixIcon: const Padding(
-                              padding: EdgeInsets.only(left: 20, right: 10),
-                              child: Text('\$', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(left: 20, right: 10),
+                              child: Text(currencySymbol, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
                             ),
                             prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
                             border: InputBorder.none,
@@ -180,7 +220,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: const Text('Save Expense', style: TextStyle(fontSize: 18)),
+                    child: Text(isEditing ? 'Update Expense' : 'Save Expense', style: const TextStyle(fontSize: 18)),
                   ),
                 ],
               ),
