@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class GeminiService {
-  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
 
   Future<String> getInsights(Map<String, dynamic> summary, String apiKey) async {
     final prompt = 'Analyze this spending and give financial advice, savings tips, and risks: \n${jsonEncode(summary)}';
@@ -11,7 +11,7 @@ class GeminiService {
   }
 
   Future<String> sendChatMessage(String message, Map<String, dynamic> summary, String apiKey) async {
-    final prompt = 'User financial summary: ${jsonEncode(summary)}\n\nUser: $message\n\nAI:';
+    final prompt = 'You are a financial advisor for the app SpendMind. You MUST ONLY answer questions related to the user\'s expenses and financial summary. If the user asks about anything else, politely decline and say you can only discuss their finances.\n\nUser financial summary: ${jsonEncode(summary)}\n\nUser: $message\n\nAI:';
     
     return await _makeRequest(prompt, apiKey);
   }
