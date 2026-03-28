@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../providers/expense_provider.dart';
 import '../data/models/expense.dart';
 import '../core/theme.dart';
@@ -9,6 +10,15 @@ class ExpenseTile extends StatelessWidget {
   final Expense expense;
 
   const ExpenseTile({Key? key, required this.expense}) : super(key: key);
+
+  String _formatDate(String dateString) {
+    try {
+      final dt = DateTime.parse(dateString);
+      return DateFormat('MMM dd, yyyy • hh:mm a').format(dt);
+    } catch (_) {
+      return dateString;
+    }
+  }
 
   IconData _getCategoryIcon(String category) {
     switch (category.toLowerCase()) {
@@ -75,7 +85,7 @@ class ExpenseTile extends StatelessWidget {
           children: [
             const SizedBox(height: 4),
             Text(
-              expense.date,
+              _formatDate(expense.date),
               style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
             ),
             if (expense.note.isNotEmpty) ...[

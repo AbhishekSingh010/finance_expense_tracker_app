@@ -10,6 +10,7 @@ import 'screens/add_expense_screen.dart';
 import 'dart:ui';
 import 'services/notification_service.dart';
 import 'services/sms_sync_service.dart';
+import 'services/payment_notification_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 void main() async {
@@ -22,17 +23,36 @@ void main() async {
   runApp(const SpendMindApp());
 }
 
-class SpendMindApp extends StatelessWidget {
+class SpendMindApp extends StatefulWidget {
   const SpendMindApp({Key? key}) : super(key: key);
+
+  @override
+  _SpendMindAppState createState() => _SpendMindAppState();
+}
+
+class _SpendMindAppState extends State<SpendMindApp> {
+  late ExpenseProvider _expenseProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _expenseProvider = ExpenseProvider();
+
+    // Initialize background payment notification listener
+    PaymentNotificationService().initialize(() {
+      // Reload provider data if a transaction was auto-logged
+      _expenseProvider.loadData();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+        ChangeNotifierProvider.value(value: _expenseProvider),
       ],
       child: MaterialApp(
-        title: 'SpendMind AI',
+        title: 'Money Saver',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         home: const MainScreen(),

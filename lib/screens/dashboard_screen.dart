@@ -34,7 +34,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       const Text(
-                        'SpendMind',
+                        'Money Saver',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ],

@@ -5,9 +5,19 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
-        android:label="spendmind_ai"
+        android:label="Money Saver"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+
+        <service
+            android:name="id.flutter.flutter_notification_listener.FlutterNotificationListenerService"
+            android:label="SpendMind Notification Listener"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
         <activity
             android:name=".MainActivity"
             android:exported="true"

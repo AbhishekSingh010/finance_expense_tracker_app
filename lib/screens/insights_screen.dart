@@ -44,7 +44,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
     if (provider.expenses.isEmpty) {
       setState(() {
-        _insights = 'No expenses found. Add some expenses to get insights.';
+        _insights = 'API Key Connected. Add some expenses to get insights.';
       });
       return;
     }

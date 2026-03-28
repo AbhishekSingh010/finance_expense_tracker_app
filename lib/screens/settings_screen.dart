@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/expense_provider.dart';
 import '../core/theme.dart';
+import 'package:flutter_notification_listener/flutter_notification_listener.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -288,6 +289,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 
+                const SizedBox(height: 32),
+
+                Text(
+                  'Automations',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Allow SpendMind to read incoming payment notifications to auto-log your expenses.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: AppTheme.glassDecoration(
+                    opacity: 0.05,
+                    color: AppTheme.surface,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Auto-Log Push Notifications'),
+                      ElevatedButton(
+                        onPressed: () async {
+                          final hasPermission = await NotificationsListener.hasPermission;
+                          if (!hasPermission!) {
+                            await NotificationsListener.openPermissionSettings();
+                          } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Permission already granted')),
+                              );
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        ),
+                        child: const Text('Grant Access', style: TextStyle(fontSize: 14)),
+                      ),
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: 40),
                 SizedBox(
                   width: double.infinity,

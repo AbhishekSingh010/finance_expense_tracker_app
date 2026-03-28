@@ -82,11 +82,22 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   void _saveExpense() {
     if (_formKey.currentState!.validate()) {
+      // Keep the current time when updating/saving for the day selected
+      final now = DateTime.now();
+      final dateWithTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        now.hour,
+        now.minute,
+        now.second,
+      );
+
       final expense = Expense(
         id: widget.existingExpense?.id,
         amount: double.parse(_amountController.text),
         category: _selectedCategory,
-        date: DateFormat('yyyy-MM-dd').format(_selectedDate),
+        date: dateWithTime.toIso8601String(),
         note: _noteController.text,
       );
 

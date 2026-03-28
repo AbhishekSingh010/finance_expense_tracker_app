@@ -23,30 +23,47 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAiStatus();
+
+      // Listen for changes so we update connection status immediately if they just entered it
+      Provider.of<ExpenseProvider>(context, listen: false).addListener(_checkAiStatus);
     });
+  }
+
+  @override
+  void dispose() {
+    Provider.of<ExpenseProvider>(context, listen: false).removeListener(_checkAiStatus);
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _checkAiStatus() {
     final provider = Provider.of<ExpenseProvider>(context, listen: false);
+
+    // Clear initial messages to avoid duplicates if re-evaluating
+    setState(() {
+      _messages.removeWhere((m) => m['role'] == 'system');
+    });
+
     if (!provider.aiEnabled) {
       setState(() {
-        _messages.add({
+        _messages.insert(0, {
           'role': 'system',
           'content': 'AI features are currently disabled. Please enable them in settings.',
         });
       });
     } else if (!provider.hasApiKey) {
       setState(() {
-        _messages.add({
+        _messages.insert(0, {
           'role': 'system',
           'content': 'Please add your Gemini API key in settings to use chat.',
         });
       });
     } else {
       setState(() {
-        _messages.add({
+        _messages.insert(0, {
           'role': 'system',
-          'content': 'Hello! I am your AI Financial Assistant. Ask me anything about your finances.',
+          'content': 'API Key Connected. Hello! I am your AI Financial Assistant. Ask me anything about your finances.',
         });
       });
     }
@@ -109,12 +126,6 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  @override
-  void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
