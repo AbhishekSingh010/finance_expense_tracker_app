@@ -35,11 +35,7 @@ class ChartWidget extends StatelessWidget {
     double total = categoryBreakdown.values.fold(0, (sum, amount) => sum + amount);
 
     List<PieChartSectionData> sections = [];
-    int i = 0;
     categoryBreakdown.forEach((category, amount) {
-      final isTouched = false; // Could add state for interactivity
-      final fontSize = isTouched ? 16.0 : 12.0;
-      final radius = isTouched ? 60.0 : 50.0;
       final percentage = (amount / total * 100).toStringAsFixed(1);
 
       sections.add(
@@ -47,15 +43,14 @@ class ChartWidget extends StatelessWidget {
           color: _getColorForCategory(category),
           value: amount,
           title: '$percentage%',
-          radius: radius,
-          titleStyle: TextStyle(
-            fontSize: fontSize,
+          radius: 50.0,
+          titleStyle: const TextStyle(
+            fontSize: 12.0,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
       );
-      i++;
     });
 
     return Container(

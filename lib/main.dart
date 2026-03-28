@@ -8,8 +8,13 @@ import 'screens/insights_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/add_expense_screen.dart';
 import 'dart:ui';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().initialize();
+  // Request permissions and initialize SMS listener in background
+  // await TransactionListenerService().initialize();
   runApp(const SpendMindApp());
 }
 

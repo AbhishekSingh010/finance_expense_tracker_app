@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../data/db_helper.dart';
 import '../data/models/expense.dart';
 import '../services/storage_service.dart';
+import '../services/notification_service.dart';
 
 class ExpenseProvider with ChangeNotifier {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -104,6 +105,43 @@ class ExpenseProvider with ChangeNotifier {
   Future<void> addExpense(Expense expense) async {
     await _dbHelper.insertExpense(expense);
     await loadData();
+    _checkBudgetAndNotify(expense.amount);
+  }
+
+  void _checkBudgetAndNotify(double justAdded) {
+    if (_dailyBudget > 0) {
+      final now = DateTime.now();
+      final dailyExpenses = _expenses.where((e) {
+        try {
+          final ed = DateTime.parse(e.date);
+          return ed.year == now.year && ed.month == now.month && ed.day == now.day;
+        } catch (_) { return false; }
+      }).fold(0.0, (sum, item) => sum + item.amount);
+
+      final ratio = dailyExpenses / _dailyBudget;
+      String title = 'Expense Added: $_currencySymbol${justAdded.toStringAsFixed(2)}';
+      String body = 'Total daily: $_currencySymbol${dailyExpenses.toStringAsFixed(2)}';
+
+      if (ratio >= 1.0) {
+        title = '🚨 Daily Budget Exceeded!';
+        body = 'You have exceeded your daily budget of $_currencySymbol${_dailyBudget.toStringAsFixed(0)}';
+      } else if (ratio >= 0.8) {
+        title = '⚠️ Near Daily Budget';
+        body = 'You have spent ${(ratio*100).toStringAsFixed(0)}% of your daily budget';
+      }
+
+      NotificationService().showNotification(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title: title,
+        body: body,
+      );
+    } else {
+      NotificationService().showNotification(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title: 'Expense Added',
+        body: 'You just spent $_currencySymbol${justAdded.toStringAsFixed(2)}',
+      );
+    }
   }
 
   Future<void> updateExpense(Expense expense) async {

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import '../core/theme.dart';
+import '../services/gemini_service.dart';
 import '../data/models/expense.dart';
 import '../providers/expense_provider.dart';
 
@@ -21,6 +25,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   DateTime _selectedDate = DateTime.now();
 
   final List<String> _categories = ['Food', 'Travel', 'Bills', 'Shopping', 'Others'];
+  bool _isScanning = false;
+  final ImagePicker _picker = ImagePicker();
+  final GeminiService _geminiService = GeminiService();
 
   @override
   void initState() {
@@ -92,6 +99,73 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     }
   }
 
+  Future<void> _scanReceipt() async {
+    final provider = Provider.of<ExpenseProvider>(context, listen: false);
+    if (!provider.hasApiKey) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please set Gemini API Key in settings first')),
+      );
+      return;
+    }
+
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+      if (image == null) return;
+
+      setState(() {
+        _isScanning = true;
+      });
+
+      final bytes = await File(image.path).readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      final result = await _geminiService.scanReceipt(base64Image, 'image/jpeg', provider.apiKey!);
+
+      if (result != null) {
+        setState(() {
+          if (result['amount'] != null) _amountController.text = result['amount'].toString();
+          if (result['note'] != null) _noteController.text = result['note'].toString();
+
+          final parsedCategory = result['category']?.toString() ?? '';
+          final capCategory = parsedCategory.isNotEmpty ? '${parsedCategory[0].toUpperCase()}${parsedCategory.substring(1)}' : '';
+
+          if (parsedCategory.isNotEmpty && _categories.contains(capCategory)) {
+            _selectedCategory = capCategory;
+          } else if (parsedCategory.isNotEmpty && _categories.contains(parsedCategory)) {
+            _selectedCategory = parsedCategory;
+          }
+
+          if (result['date'] != null) {
+            try {
+              _selectedDate = DateTime.parse(result['date']);
+            } catch (_) {}
+          }
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Receipt scanned successfully!')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to parse receipt')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error scanning receipt: $e')),
+        );
+      }
+    } finally {
+      setState(() {
+        _isScanning = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.existingExpense != null;
@@ -124,6 +198,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (!isEditing) ...[
+                    ElevatedButton.icon(
+                      onPressed: _isScanning ? null : _scanReceipt,
+                      icon: _isScanning
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Icon(Icons.camera_alt),
+                      label: Text(_isScanning ? 'Scanning...' : 'Scan Receipt'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.secondary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                   Container(
                     decoration: AppTheme.glassDecoration(
                       opacity: 0.05,
