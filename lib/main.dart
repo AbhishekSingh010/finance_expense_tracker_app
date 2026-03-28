@@ -9,12 +9,16 @@ import 'screens/chat_screen.dart';
 import 'screens/add_expense_screen.dart';
 import 'dart:ui';
 import 'services/notification_service.dart';
+import 'services/sms_sync_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Permission.notification.request();
   await NotificationService().initialize();
-  // Request permissions and initialize SMS listener in background
-  // await TransactionListenerService().initialize();
+  // Call syncRecentSms periodically or on app launch to analyze new bank texts
+  // without risking Google Play SMS background policy rejections.
+  await SmsSyncService().syncRecentSms();
   runApp(const SpendMindApp());
 }
 
