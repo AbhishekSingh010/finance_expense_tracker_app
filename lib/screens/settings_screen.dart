@@ -1,0 +1,220 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/expense_provider.dart';
+import '../core/theme.dart';
+
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({Key? key}) : super(key: key);
+
+  @override
+  _SettingsScreenState createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final _apiKeyController = TextEditingController();
+  final _budgetController = TextEditingController();
+  bool _isApiVisible = false;
+  bool _aiEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<ExpenseProvider>(context, listen: false);
+      if (provider.apiKey != null) {
+        _apiKeyController.text = provider.apiKey!;
+      }
+      if (provider.budget > 0) {
+        _budgetController.text = provider.budget.toStringAsFixed(0);
+      }
+      _aiEnabled = provider.aiEnabled;
+    });
+  }
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+    _budgetController.dispose();
+    super.dispose();
+  }
+
+  void _saveSettings() {
+    final provider = Provider.of<ExpenseProvider>(context, listen: false);
+    
+    if (_apiKeyController.text.isNotEmpty) {
+      provider.setApiKey(_apiKeyController.text);
+    } else {
+      provider.removeApiKey();
+    }
+
+    if (_budgetController.text.isNotEmpty) {
+      final budget = double.tryParse(_budgetController.text);
+      if (budget != null) {
+        provider.setBudget(budget);
+      }
+    } else {
+      provider.setBudget(0);
+    }
+    
+    provider.setAiEnabled(_aiEnabled);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Settings saved successfully'),
+        backgroundColor: AppTheme.success,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Settings'),
+      ),
+      body: Consumer<ExpenseProvider>(
+        builder: (context, provider, child) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Financial Goals',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: AppTheme.glassDecoration(
+                    opacity: 0.05,
+                    color: AppTheme.surface,
+                  ),
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _budgetController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Monthly Budget',
+                          prefixIcon: Icon(Icons.attach_money, color: AppTheme.textSecondary),
+                          hintText: 'e.g. 5000',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                
+                Text(
+                  'AI Integration',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Your financial data stays on-device. Only aggregated summaries are sent to Gemini for insights.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: AppTheme.glassDecoration(
+                    opacity: 0.05,
+                    color: AppTheme.surface,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Enable AI Features:'),
+                          Switch(
+                            value: _aiEnabled,
+                            onChanged: (value) {
+                              setState(() {
+                                _aiEnabled = value;
+                              });
+                            },
+                            activeColor: AppTheme.primary,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('AI Insights Status:'),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: provider.hasApiKey 
+                                  ? AppTheme.success.withOpacity(0.2)
+                                  : AppTheme.error.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              provider.hasApiKey ? 'Connected' : 'Not Connected',
+                              style: TextStyle(
+                                color: provider.hasApiKey ? AppTheme.success : AppTheme.error,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _apiKeyController,
+                        obscureText: !_isApiVisible,
+                        decoration: InputDecoration(
+                          labelText: 'Gemini API Key',
+                          prefixIcon: const Icon(Icons.key, color: AppTheme.textSecondary),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isApiVisible ? Icons.visibility_off : Icons.visibility,
+                              color: AppTheme.textSecondary,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isApiVisible = !_isApiVisible;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            // Link to get API key
+                          },
+                          child: const Text(
+                            'Get API Key',
+                            style: TextStyle(color: AppTheme.primary),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _saveSettings,
+                    child: const Text('Save Settings'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
