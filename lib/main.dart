@@ -42,6 +42,8 @@ class _SpendMindAppState extends State<SpendMindApp> {
     PaymentNotificationService().initialize(() {
       // Reload provider data if a transaction was auto-logged
       _expenseProvider.loadData();
+      // Optional: Since the isolate sent this, we can assume it successfully saved.
+      // A local notification could be triggered here if desired, safely on the main thread.
     });
   }
 

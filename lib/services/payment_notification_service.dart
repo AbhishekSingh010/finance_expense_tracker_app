@@ -5,7 +5,8 @@ import 'package:flutter_notification_listener/flutter_notification_listener.dart
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
 import '../data/models/expense.dart';
-import 'notification_service.dart';
+
+import 'dart:ui' as ui;
 
 // Mandatory background port setup
 const String _portName = 'notification_listener_port';
@@ -13,8 +14,10 @@ const String _portName = 'notification_listener_port';
 // Must be a top-level or static function
 @pragma('vm:entry-point')
 void _notificationCallback(NotificationEvent evt) async {
-  WidgetsFlutterBinding.ensureInitialized();
-  if (evt.packageName == null || evt.title == null || evt.text == null) return;
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    ui.DartPluginRegistrant.ensureInitialized();
+    if (evt.packageName == null || evt.title == null || evt.text == null) return;
 
   final title = evt.title!.toLowerCase();
   final body = evt.text!.toLowerCase();
@@ -47,20 +50,18 @@ void _notificationCallback(NotificationEvent evt) async {
 
         await dbHelper.insertExpense(expense);
 
-        // Let the user know we caught the payment in the background
-        await NotificationService().showNotification(
-          id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-          title: 'Auto-Logged Transaction',
-          body: 'Added $amountStr from ${evt.title}. Open SpendMind to edit.',
-        );
-
-        // Notify the UI isolate if it is active
+        // Notify the UI isolate if it is active. The UI isolate will handle the notification
+        // because initializing `flutter_local_notifications` in a pure background isolate
+        // often causes memory leaks or native crashes if the engine isn't fully spun up.
         final SendPort? send = IsolateNameServer.lookupPortByName(_portName);
         if (send != null) {
           send.send('NEW_TRANSACTION');
         }
       }
     }
+  }
+  } catch (e) {
+    debugPrint('Background notification parsing failed: $e');
   }
 }
 
