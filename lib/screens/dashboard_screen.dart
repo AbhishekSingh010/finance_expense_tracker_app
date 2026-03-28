@@ -19,7 +19,27 @@ class DashboardScreen extends StatelessWidget {
               slivers: [
                 SliverAppBar(
                   floating: true,
-                  title: const Text('SpendMind'),
+                  title: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.currency_exchange,
+                          color: AppTheme.primary,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'SpendMind',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
                   actions: [
                     IconButton(
                       icon: const Icon(Icons.settings),
@@ -37,7 +57,9 @@ class DashboardScreen extends StatelessWidget {
                       children: [
                         _buildTotalCard(provider),
                         const SizedBox(height: 24),
-                        if (provider.budget > 0) _buildBudgetProgress(provider),
+                        _buildTimeframeSelector(provider),
+                        const SizedBox(height: 24),
+                        if (provider.budget > 0 && provider.timeframe == 'monthly') _buildBudgetProgress(provider),
                         const SizedBox(height: 24),
                         if (provider.expenses.isNotEmpty) ...[
                           Text(
@@ -113,7 +135,7 @@ class DashboardScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Total Spending',
+            'Total ${provider.timeframe[0].toUpperCase()}${provider.timeframe.substring(1)} Spending',
             style: TextStyle(
               color: Colors.white.withOpacity(0.8),
               fontSize: 16,
@@ -130,6 +152,40 @@ class DashboardScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTimeframeSelector(ExpenseProvider provider) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: AppTheme.glassDecoration(
+        opacity: 0.1,
+        color: AppTheme.surface,
+        borderRadius: 30,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: ['daily', 'weekly', 'monthly'].map((tf) {
+          final isSelected = provider.timeframe == tf;
+          return GestureDetector(
+            onTap: () => provider.setTimeframe(tf),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              decoration: BoxDecoration(
+                color: isSelected ? AppTheme.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                tf[0].toUpperCase() + tf.substring(1),
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppTheme.textSecondary,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

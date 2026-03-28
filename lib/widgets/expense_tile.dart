@@ -42,8 +42,8 @@ class ExpenseTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: AppTheme.glassDecoration(
-        opacity: 0.5,
-        color: AppTheme.cardBackground,
+        opacity: 0.2, // increased glass effect
+        color: AppTheme.surface,
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
