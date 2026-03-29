@@ -135,8 +135,8 @@ class _MainScreenState extends State<MainScreen> {
                   label: 'Add',
                 ),
                 const BottomNavigationBarItem(
-                  icon: Icon(Icons.insights),
-                  label: 'Insights',
+                  icon: Icon(Icons.bar_chart),
+                  label: 'Stats',
                 ),
                 const BottomNavigationBarItem(
                   icon: Icon(Icons.chat_bubble),

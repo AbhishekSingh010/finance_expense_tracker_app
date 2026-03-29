@@ -1,6 +1,5 @@
 import 'dart:isolate';
 import 'dart:ui';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_notification_listener/flutter_notification_listener.dart';
 import 'package:intl/intl.dart';
 import '../data/db_helper.dart';
@@ -15,7 +14,7 @@ const String _portName = 'notification_listener_port';
 @pragma('vm:entry-point')
 void _notificationCallback(NotificationEvent evt) async {
   try {
-    WidgetsFlutterBinding.ensureInitialized();
+    // For background isolates, DartPluginRegistrant is typically required instead of WidgetsFlutterBinding.
     ui.DartPluginRegistrant.ensureInitialized();
     if (evt.packageName == null || evt.title == null || evt.text == null) return;
 
@@ -50,9 +49,7 @@ void _notificationCallback(NotificationEvent evt) async {
 
         await dbHelper.insertExpense(expense);
 
-        // Notify the UI isolate if it is active. The UI isolate will handle the notification
-        // because initializing `flutter_local_notifications` in a pure background isolate
-        // often causes memory leaks or native crashes if the engine isn't fully spun up.
+        // Notify the UI isolate if it is active.
         final SendPort? send = IsolateNameServer.lookupPortByName(_portName);
         if (send != null) {
           send.send('NEW_TRANSACTION');
@@ -61,7 +58,7 @@ void _notificationCallback(NotificationEvent evt) async {
     }
   }
   } catch (e) {
-    debugPrint('Background notification parsing failed: $e');
+    print('Background notification parsing failed: $e');
   }
 }
 
@@ -83,9 +80,14 @@ class PaymentNotificationService {
       }
     });
 
-    final hasPermission = await NotificationsListener.hasPermission;
-    if (hasPermission == true) {
-      await NotificationsListener.initialize(callbackHandle: _notificationCallback);
+    try {
+      final hasPermission = await NotificationsListener.hasPermission;
+      if (hasPermission == true) {
+        // Initialize the listener service. If already running, this is safe.
+        await NotificationsListener.initialize(callbackHandle: _notificationCallback);
+      }
+    } catch (e) {
+      print('Error initializing notification listener: $e');
     }
   }
 }

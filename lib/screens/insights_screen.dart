@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/expense_provider.dart';
-import '../services/gemini_service.dart';
 import '../core/theme.dart';
 import '../widgets/chart_widget.dart';
 
@@ -13,55 +12,6 @@ class InsightsScreen extends StatefulWidget {
 }
 
 class _InsightsScreenState extends State<InsightsScreen> {
-  final GeminiService _geminiService = GeminiService();
-  String _insights = '';
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchInsights();
-    });
-  }
-
-  Future<void> _fetchInsights() async {
-    final provider = Provider.of<ExpenseProvider>(context, listen: false);
-
-    if (!provider.aiEnabled) {
-      setState(() {
-        _insights = 'AI features are disabled. Please enable them in Settings to view insights.';
-      });
-      return;
-    }
-
-    if (!provider.hasApiKey) {
-      setState(() {
-        _insights = 'Please enter your Gemini API key in Settings to view AI insights.';
-      });
-      return;
-    }
-
-    if (provider.expenses.isEmpty) {
-      setState(() {
-        _insights = 'API Key Connected. Add some expenses to get insights.';
-      });
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    final summary = provider.categoryBreakdown;
-    final insights = await _geminiService.getInsights(summary, provider.apiKey!);
-
-    setState(() {
-      _insights = insights;
-      _isLoading = false;
-    });
-  }
-
   Widget _buildTimeframeSelector(ExpenseProvider provider) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -78,7 +28,6 @@ class _InsightsScreenState extends State<InsightsScreen> {
           return GestureDetector(
             onTap: () {
               provider.setTimeframe(tf);
-              _fetchInsights();
             },
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -118,6 +67,18 @@ class _InsightsScreenState extends State<InsightsScreen> {
       }
     });
 
+    // Calculate median
+    final amounts = expenses.map((e) => e.amount).toList()..sort();
+    double median = 0;
+    if (amounts.isNotEmpty) {
+      final middle = amounts.length ~/ 2;
+      if (amounts.length % 2 == 1) {
+        median = amounts[middle];
+      } else {
+        median = (amounts[middle - 1] + amounts[middle]) / 2.0;
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       padding: const EdgeInsets.all(20),
@@ -129,16 +90,25 @@ class _InsightsScreenState extends State<InsightsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Statistics',
+            'Statistics Overview',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStatItem('Average', '${provider.currencySymbol}${avg.toStringAsFixed(2)}'),
-              _buildStatItem('Highest', highestCat),
+              _buildStatItem('Mean (Avg)', '${provider.currencySymbol}${avg.toStringAsFixed(2)}'),
+              _buildStatItem('Median', '${provider.currencySymbol}${median.toStringAsFixed(2)}'),
               _buildStatItem('Count', '${expenses.length}'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStatItem('Total', '${provider.currencySymbol}${total.toStringAsFixed(2)}'),
+              _buildStatItem('Highest Cat.', highestCat),
+              _buildStatItem('Max Spent', '${provider.currencySymbol}${amounts.last.toStringAsFixed(2)}'),
             ],
           ),
         ],
@@ -167,13 +137,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Insights & Statistics'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _fetchInsights,
-          ),
-        ],
+        title: const Text('Statistics'),
       ),
       body: SafeArea(
         child: Consumer<ExpenseProvider>(
@@ -191,59 +155,16 @@ class _InsightsScreenState extends State<InsightsScreen> {
                           height: 250,
                           child: ChartWidget(categoryBreakdown: provider.categoryBreakdown),
                         ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            gradient: AppTheme.primaryGradient,
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Column(
-                            children: [
-                              const Icon(
-                                Icons.insights,
-                                size: 48,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'AI Financial Advisor',
-                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Based on your spending habits',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.white.withOpacity(0.8),
-                                ),
-                              ),
-                            ],
+                      if (provider.expenses.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Center(
+                            child: Text(
+                              'No data available for this timeframe.',
+                              style: TextStyle(color: AppTheme.textSecondary),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: _isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : Container(
-                                padding: const EdgeInsets.all(24),
-                                decoration: AppTheme.glassDecoration(
-                                  opacity: 0.05,
-                                  color: AppTheme.surface,
-                                ),
-                                child: Text(
-                                  _insights,
-                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    height: 1.6,
-                                  ),
-                                ),
-                              ),
-                      ),
                       const SizedBox(height: 100), // padding for navbar
                     ],
                   ),
